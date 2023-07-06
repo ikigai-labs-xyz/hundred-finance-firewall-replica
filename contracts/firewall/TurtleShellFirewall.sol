@@ -7,9 +7,12 @@ pragma solidity ^0.8.19;
 /// Protocol can then check the firewall status to check if its TVL has decreased more than its set threshold since a
 /// set number of blocks ago.
 contract TurtleShellFirewall {
+    /// @notice This error is thrown if the threshold value is greater than 100 (100%)
+    error TurtleShellFirewall__InvalidThresholdValue();
+
     struct FirewallConfig {
         /// @dev threshold for changes as a percentage (represented as an integer)
-        uint256 thresholdPercentage;
+        uint8 thresholdPercentage;
         /// @dev the number of blocks to "go-back" to find reference paramter for Firewall check
         uint256 blockInterval;
     }
@@ -94,7 +97,9 @@ contract TurtleShellFirewall {
 
     /// @notice Function for setting security configuration for the user (protocol)
     /// @param tresholdPercentage The threshold as a percentage (represented as an integer)
-    function setUserConfig(uint256 tresholdPercentage, uint256 blockInterval, uint256 startParameter) external {
+    function setUserConfig(uint8 tresholdPercentage, uint256 blockInterval, uint256 startParameter) external {
+        if (tresholdPercentage > 100) revert TurtleShellFirewall__InvalidThresholdValue();
+        
         s_firewallConfig[msg.sender] = FirewallConfig(tresholdPercentage, blockInterval);
         _setParameter(startParameter);
     }
