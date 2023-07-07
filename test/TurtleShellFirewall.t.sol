@@ -28,7 +28,12 @@ contract TurtleShellFirewallTest is Test {
         turtleShellFirewall.setUserConfig(5, blockInterval, blockNumber);
     }
 
-    function testFuzz_setUserConfig_revertsIfInvalidConfigValues(uint256 startParameter, uint8 thresholdPercentage) public {
+    function testFuzz_setUserConfig_revertsIfInvalidConfigValues(
+        uint256 startParameter,
+        uint8 thresholdPercentage
+    )
+        public
+    {
         vm.roll(1);
         vm.assume(thresholdPercentage <= 100 && thresholdPercentage != 0);
         vm.assume(startParameter > type(uint256).max / thresholdPercentage);
@@ -37,7 +42,13 @@ contract TurtleShellFirewallTest is Test {
         turtleShellFirewall.setUserConfig(thresholdPercentage, 1, startParameter);
     }
 
-    function testFuzz_setUserConfig_setsConfig(uint256 blockInterval, uint8 thresholdPercentage, uint256 startParameter) public {
+    function testFuzz_setUserConfig_setsConfig(
+        uint256 blockInterval,
+        uint8 thresholdPercentage,
+        uint256 startParameter
+    )
+        public
+    {
         vm.assume(thresholdPercentage <= 100 && thresholdPercentage != 0);
         vm.assume(startParameter < type(uint256).max / thresholdPercentage);
         vm.roll(blockInterval);
@@ -72,7 +83,7 @@ contract TurtleShellFirewallTest is Test {
         uint256 newParameter
     )
         public
-    { 
+    {
         vm.assume(thresholdPercentage <= 100 && thresholdPercentage != 0);
         vm.assume(startParameter < type(uint256).max / thresholdPercentage);
         vm.roll(blockInterval);
