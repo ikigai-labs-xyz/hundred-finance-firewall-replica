@@ -7,16 +7,11 @@ import "./ITurtleShellFirewall.sol";
  * @title TurtleShellFirewall
  * @notice This contract is the TurtleShell Firewall implementation, which can be used by any contract to implement an
  *  on-chain firewall. The firewall can be configured by the contract owner to set a threshold percentage, block
- * interval and
- *  start parameter. The firewall works by checking if the parameter for a given user has changed by more than the
- * threshold, when
- *  updating it. If the parameter has changed by more than the threshold, the firewall will be activated for the given
- * user. In a
- *  sophistaced implementation, the parameter could possible be the result of a mathematical formula, which takes into
- * account vital
- *  parameters of a user (protocol) that should not change by more than a certain threshold. The firewall can be
- * manually deactivated
- *  and actived by the user (protocol) at any time.
+ * interval and start parameter. The firewall works by checking if the parameter for a given user has changed by more
+ * than the threshold, when updating it. If the parameter has changed by more than the threshold, the firewall will be
+ * activated for the given user. In a sophistaced implementation, the parameter could possible be the result of a
+ * mathematical formula, which takes into account vital parameters of a user (protocol) that should not change by more
+ * than a certain threshold. The firewall can be manually deactivated and actived by the user (protocol) at any time.
  */
 contract TurtleShellFirewall is ITurtleShellFirewall {
     /// @notice This error is thrown if the threshold value is greater than 100 (100%)
