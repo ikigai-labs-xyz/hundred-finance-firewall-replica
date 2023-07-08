@@ -19,7 +19,7 @@ interface ITurtleShellFirewall {
      * @param newParameter is the new parameter
      * @return Returns true if the firewall was activated, or had alrady been active
      */
-    function updateParameter(uint256 newParameter) external returns (bool);
+    function setParameter(uint256 newParameter) external returns (bool);
 
     /**
      * @notice Function for setting the configuration values for a firewall user
