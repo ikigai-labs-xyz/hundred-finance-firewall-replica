@@ -1,19 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "./ITurtleShellFirewall.sol";
-
 /**
  * @title TurtleShellFirewall
  * @notice This contract is the TurtleShell Firewall implementation, which can be used by any contract to implement an
  *  on-chain firewall. The firewall can be configured by the contract owner to set a threshold percentage, block
- * interval and start parameter. The firewall works by checking if the parameter for a given user has changed by more
- * than the threshold, when updating it. If the parameter has changed by more than the threshold, the firewall will be
- * activated for the given user. In a sophistaced implementation, the parameter could possible be the result of a
- * mathematical formula, which takes into account vital parameters of a user (protocol) that should not change by more
- * than a certain threshold. The firewall can be manually deactivated and actived by the user (protocol) at any time.
+ * interval and
+ *  start parameter. The firewall works by checking if the parameter for a given user has changed by more than the
+ * threshold, when
+ *  updating it. If the parameter has changed by more than the threshold, the firewall will be activated for the given
+ * user. In a
+ *  sophistaced implementation, the parameter could possible be the result of a mathematical formula, which takes into
+ * account vital
+ *  parameters of a user (protocol) that should not change by more than a certain threshold. The firewall can be
+ * manually deactivated
+ *  and actived by the user (protocol) at any time.
  */
-contract TurtleShellFirewall is ITurtleShellFirewall {
+contract TurtleShellFirewall {
     /// @notice This error is thrown if the threshold value is greater than 100 (100%)
     error TurtleShellFirewall__InvalidThresholdValue();
     /// @notice This error is thrown if the block interval is greater than the total number of blocks
@@ -27,16 +30,30 @@ contract TurtleShellFirewall is ITurtleShellFirewall {
         uint8 thresholdPercentage;
         /// @dev the number of blocks to "go-back" to find reference paramter for Firewall check
         uint256 blockInterval;
+        /// @dev the number of blocks to wait before switch off the firewall after it has been triggered
+        uint256 cooldownPeriod;
+    }
+
+    struct ParameterData {
+        uint256 parameter;
+        uint256 blockNumber;
     }
 
     /// @dev Dynamic firewall state data for a given user
     struct FirewallData {
-        mapping(uint256 => uint256) parameters;
+        mapping(uint32 nonce => ParameterData) parameters;
         bool firewallActive;
+        uint32 nonce;
+        uint256 lastActivatedBlock;
     }
 
     mapping(address => FirewallData) private s_firewallData;
     mapping(address => FirewallConfig) private s_firewallConfig;
+
+    /// @notice Event emitted whenever the parameter for a given user gets changed
+    event ParameterChanged(address indexed user, uint256 indexed newParameter);
+    /// @notice Event emitted whenever the firewall status for a given user gets changed
+    event FirewallStatusUpdate(address indexed user, bool indexed newStatus);
 
     /**
      * @notice Function for setting the parameter for a given user
@@ -45,7 +62,9 @@ contract TurtleShellFirewall is ITurtleShellFirewall {
      * This function emits the {ParameterChanged} event
      */
     function _setParameter(uint256 newParamter) internal {
-        s_firewallData[msg.sender].parameters[block.number] = newParamter;
+        uint32 nonce = s_firewallData[msg.sender].nonce;
+        s_firewallData[msg.sender].parameters[nonce] = ParameterData(newParamter, block.number);
+        s_firewallData[msg.sender].nonce++;
         emit ParameterChanged(msg.sender, newParamter);
     }
 
@@ -67,13 +86,23 @@ contract TurtleShellFirewall is ITurtleShellFirewall {
      */
     function _checkIfParameterUpdateExceedsThreshold(uint256 newParameter) internal view returns (bool) {
         FirewallConfig memory m_firewallConfig = s_firewallConfig[msg.sender];
-        uint256 referenceParameter =
-            s_firewallData[msg.sender].parameters[block.number - m_firewallConfig.blockInterval];
+
+        // Finding the ParameterData with a block number closest to 'block.number - m_firewallConfig.blockInterval'
+        uint256 targetBlockNumber = block.number - m_firewallConfig.blockInterval;
+        uint256 referenceParameter;
+        for (uint32 i = s_firewallData[msg.sender].nonce; i > 0; i--) {
+            if (s_firewallData[msg.sender].parameters[i - 1].blockNumber <= targetBlockNumber) {
+                referenceParameter = s_firewallData[msg.sender].parameters[i - 1].parameter;
+                break;
+            }
+        }
 
         // insufficient data
         if (referenceParameter == 0) return false;
 
         uint256 thresholdAmount = (referenceParameter * m_firewallConfig.thresholdPercentage) / 100;
+        // @philip: in the case of DeFi protocol I dont think we should trigger the firewall if the liquidity is
+        // increasing (newParameter > referenceParameter)
         if (newParameter > referenceParameter) {
             return newParameter - referenceParameter >= thresholdAmount;
         } else {
@@ -81,11 +110,31 @@ contract TurtleShellFirewall is ITurtleShellFirewall {
         }
     }
 
-    /// @inheritdoc ITurtleShellFirewall
-    function updateParameter(uint256 newParameter) external returns (bool) {
+    /**
+     * @notice Function for updating the security parameter
+     * @dev This function can be called by any user to update their security parameter. If the parameter exceeds the
+     * threshold,
+     * the firewall will be automatically activated. If the firewall is already active, the parameter will be updated
+     * anyways.
+     *
+     * Emits the {ParameterChanged} event
+     * Emits the {FirewallStatusUpdate} event
+     * @param newParameter is the new parameter
+     * @return Returns true if the firewall was activated, or had alrady been active
+     */
+    function setParameter(uint256 newParameter) public returns (bool) {
+        FirewallConfig memory m_firewallConfig = s_firewallConfig[msg.sender];
+        FirewallData storage userFirewallData = s_firewallData[msg.sender];
+
         /// @dev gas savings by skipping threshold check in case of active firewall
-        if (s_firewallData[msg.sender].firewallActive) {
+        if (userFirewallData.firewallActive) {
             _setParameter(newParameter);
+
+            /// @dev check if the cooldown period has passed
+            if (block.number - userFirewallData.lastActivatedBlock > m_firewallConfig.cooldownPeriod) {
+                _setFirewallStatus(false);
+            }
+
             return true;
         }
 
@@ -96,32 +145,92 @@ contract TurtleShellFirewall is ITurtleShellFirewall {
         return triggerFirewall;
     }
 
-    /// @inheritdoc ITurtleShellFirewall
-    function setUserConfig(uint8 thresholdPercentage, uint256 blockInterval, uint256 startParameter) external {
+    /**
+     * @notice Function for increasing the security parameter
+     * @dev This function can be called by any user to increase their security parameter.
+     *
+     * @param increaseAmount is the amount by which to increase the parameter
+     * @return Returns true if the firewall was activated, or had already been active
+     */
+    function increaseParameter(uint256 increaseAmount) external returns (bool) {
+        uint256 newParameter = getParameterOf(msg.sender) + increaseAmount;
+        return setParameter(newParameter);
+    }
+
+    /**
+     * @notice Function for decreasing the security parameter
+     * @dev This function can be called by any user to decrease their security parameter.
+     *
+     * Emits the {ParameterChanged} event
+     * Emits the {FirewallStatusUpdate} event
+     * @param decreaseAmount is the amount by which to decrease the parameter
+     * @return Returns true if the firewall was activated, or had already been active
+     */
+    function decreaseParameter(uint256 decreaseAmount) external returns (bool) {
+        uint256 currentParameter = getParameterOf(msg.sender);
+        require(currentParameter >= decreaseAmount, "Cannot decrease parameter below zero");
+        uint256 newParameter = currentParameter - decreaseAmount;
+        return setParameter(newParameter);
+    }
+
+    /**
+     * @notice Function for setting the configuration values for a firewall user
+     * @param thresholdPercentage The threshold percentage to set for the firewall
+     * @param blockInterval The block interval to set for the firewall
+     * @param startParameter The start parameter to set for the firewall
+     * @param cooldownPeriod The cooldown period to set for the firewall
+     * @dev The function emits the {ParameterChanged} event
+     */
+    function setUserConfig(
+        uint8 thresholdPercentage,
+        uint256 blockInterval,
+        uint256 startParameter,
+        uint256 cooldownPeriod
+    )
+        external
+    {
         if (thresholdPercentage > 100 || thresholdPercentage == 0) revert TurtleShellFirewall__InvalidThresholdValue();
         if (blockInterval > block.number) revert TurtleShellFirewall__InvalidBlockInterval();
         if (startParameter > type(uint256).max / thresholdPercentage) revert TurtleShellFirewall__InvalidConfigValues();
 
-        s_firewallConfig[msg.sender] = FirewallConfig(thresholdPercentage, blockInterval);
+        s_firewallConfig[msg.sender] = FirewallConfig(thresholdPercentage, blockInterval, cooldownPeriod);
         _setParameter(startParameter);
     }
 
-    /// @inheritdoc ITurtleShellFirewall
+    /**
+     * @notice Function for manually setting the firewall status for a given user
+     * @param newStatus The new status to set for the firewall
+     * @dev This function can be used to manually activate or deactivate the firewall for a given user
+     * ATTENTION: This function should especially be used to deactivate the firewall, in case it got triggered.
+     * This function emits the {FirewallStatusUpdate} event
+     */
     function setFirewallStatus(bool newStatus) external {
         _setFirewallStatus(newStatus);
     }
 
-    /// @inheritdoc ITurtleShellFirewall
+    /**
+     * @notice Function for getting the firewall status for a given user
+     * @param user The address to get the firewall status for
+     * @return bool if the firewall is active for the given user
+     */
     function getFirewallStatusOf(address user) external view returns (bool) {
         return s_firewallData[user].firewallActive;
     }
 
-    /// @inheritdoc ITurtleShellFirewall
-    function getParameterOf(address user) external view returns (uint256) {
-        return s_firewallData[user].parameters[block.number];
+    /**
+     * @notice Function for getting the security parameter for a given firewall user
+     * @param user The address of the firewall user
+     * @return uint256 the security parameter for the given user
+     */
+    function getParameterOf(address user) public view returns (uint256) {
+        return s_firewallData[user].parameters[s_firewallData[user].nonce - 1].parameter;
     }
 
-    /// @inheritdoc ITurtleShellFirewall
+    /**
+     * @notice Function for getting the security parameters for a given address
+     * @param user The address to get the security parameters for
+     * @return Returns The threshold and block interval set as security parameters for the address
+     */
     function getSecurityParameterConfigOf(address user) external view returns (uint8, uint256) {
         FirewallConfig memory m_firewallConfig = s_firewallConfig[user];
         return (m_firewallConfig.thresholdPercentage, m_firewallConfig.blockInterval);
