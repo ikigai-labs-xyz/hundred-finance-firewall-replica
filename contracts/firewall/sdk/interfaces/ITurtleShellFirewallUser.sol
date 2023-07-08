@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 /**
- * @title ITurtleShellTvlTracker - Interface for the TurtleShell contract
+ * @title ITurtleShellFirewallUser - Interface for the TurtleShell contract
  * @notice This interface includes methods for checking if the firewall is triggered, for tracking any parameter,
  * setting security
  * parameters in a protocol
