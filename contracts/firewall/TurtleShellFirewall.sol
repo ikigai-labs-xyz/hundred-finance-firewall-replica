@@ -101,8 +101,6 @@ contract TurtleShellFirewall {
         if (referenceParameter == 0) return false;
 
         uint256 thresholdAmount = (referenceParameter * m_firewallConfig.thresholdPercentage) / 100;
-        // @philip: in the case of DeFi protocol I dont think we should trigger the firewall if the liquidity is
-        // increasing (newParameter > referenceParameter)
         if (newParameter > referenceParameter) {
             return newParameter - referenceParameter >= thresholdAmount;
         } else {
