@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+import "./ITurtleShellFirewall.sol";
+
 /**
  * @title TurtleShellFirewall
  * @notice This contract is the TurtleShell Firewall implementation, which can be used by any contract to implement an
@@ -16,7 +18,7 @@ pragma solidity ^0.8.19;
  * manually deactivated
  *  and actived by the user (protocol) at any time.
  */
-contract TurtleShellFirewall {
+contract TurtleShellFirewall is ITurtleShellFirewall {
     /// @notice This error is thrown if the threshold value is greater than 100 (100%)
     error TurtleShellFirewall__InvalidThresholdValue();
     /// @notice This error is thrown if the block interval is greater than the total number of blocks
@@ -49,11 +51,6 @@ contract TurtleShellFirewall {
 
     mapping(address => FirewallData) private s_firewallData;
     mapping(address => FirewallConfig) private s_firewallConfig;
-
-    /// @notice Event emitted whenever the parameter for a given user gets changed
-    event ParameterChanged(address indexed user, uint256 indexed newParameter);
-    /// @notice Event emitted whenever the firewall status for a given user gets changed
-    event FirewallStatusUpdate(address indexed user, bool indexed newStatus);
 
     /**
      * @notice Function for setting the parameter for a given user
@@ -90,7 +87,8 @@ contract TurtleShellFirewall {
         // Finding the ParameterData with a block number closest to 'block.number - m_firewallConfig.blockInterval'
         uint256 targetBlockNumber = block.number - m_firewallConfig.blockInterval;
         uint256 referenceParameter;
-        for (uint32 i = s_firewallData[msg.sender].nonce; i > 0; i--) {
+        uint32 nonce = s_firewallData[msg.sender].nonce;
+        for (uint32 i = nonce; i > 0; i--) {
             if (s_firewallData[msg.sender].parameters[i - 1].blockNumber <= targetBlockNumber) {
                 referenceParameter = s_firewallData[msg.sender].parameters[i - 1].parameter;
                 break;
@@ -195,40 +193,22 @@ contract TurtleShellFirewall {
         _setParameter(startParameter);
     }
 
-    /**
-     * @notice Function for manually setting the firewall status for a given user
-     * @param newStatus The new status to set for the firewall
-     * @dev This function can be used to manually activate or deactivate the firewall for a given user
-     * ATTENTION: This function should especially be used to deactivate the firewall, in case it got triggered.
-     * This function emits the {FirewallStatusUpdate} event
-     */
+    /// @inheritdoc ITurtleShellFirewall
     function setFirewallStatus(bool newStatus) external {
         _setFirewallStatus(newStatus);
     }
 
-    /**
-     * @notice Function for getting the firewall status for a given user
-     * @param user The address to get the firewall status for
-     * @return bool if the firewall is active for the given user
-     */
+    /// @inheritdoc ITurtleShellFirewall
     function getFirewallStatusOf(address user) external view returns (bool) {
         return s_firewallData[user].firewallActive;
     }
 
-    /**
-     * @notice Function for getting the security parameter for a given firewall user
-     * @param user The address of the firewall user
-     * @return uint256 the security parameter for the given user
-     */
+    /// @inheritdoc ITurtleShellFirewall
     function getParameterOf(address user) public view returns (uint256) {
         return s_firewallData[user].parameters[s_firewallData[user].nonce - 1].parameter;
     }
 
-    /**
-     * @notice Function for getting the security parameters for a given address
-     * @param user The address to get the security parameters for
-     * @return Returns The threshold and block interval set as security parameters for the address
-     */
+    /// @inheritdoc ITurtleShellFirewall
     function getSecurityParameterConfigOf(address user) external view returns (uint8, uint256) {
         FirewallConfig memory m_firewallConfig = s_firewallConfig[user];
         return (m_firewallConfig.thresholdPercentage, m_firewallConfig.blockInterval);

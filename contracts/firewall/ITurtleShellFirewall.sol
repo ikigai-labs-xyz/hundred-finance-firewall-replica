@@ -27,7 +27,13 @@ interface ITurtleShellFirewall {
      * @param blockInterval The block interval to set for the firewall
      * @dev The function emits the {ParameterChanged} event
      */
-    function setUserConfig(uint8 thresholdPercentage, uint256 blockInterval, uint256 startParameter) external;
+    function setUserConfig(
+        uint8 thresholdPercentage,
+        uint256 blockInterval,
+        uint256 startParameter,
+        uint256 cooldownPeriod
+    )
+        external;
 
     /**
      * @notice Function for manually setting the firewall status for a given user
