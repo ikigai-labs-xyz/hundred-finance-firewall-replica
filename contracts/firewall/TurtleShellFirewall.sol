@@ -18,6 +18,8 @@ contract TurtleShellFirewall is ITurtleShellFirewall {
     error TurtleShellFirewall__InvalidThresholdValue();
     /// @notice This error is thrown if the block interval is greater than the total number of blocks
     error TurtleShellFirewall__InvalidBlockInterval();
+    /// @notice This error is thrown if the cooldown period is greater than the total number of blocks
+    error TurtleShellFirewall__InvalidCooldownPeriod();
     /// @notice This error is thrown if the startParameter is too big to be multiplied by the threshold percentage
     error TurtleShellFirewall__InvalidConfigValues();
     /// @notice This error is thrown if the parameter is decreased bellow zero
@@ -184,6 +186,7 @@ contract TurtleShellFirewall is ITurtleShellFirewall {
     {
         if (thresholdPercentage > 100 || thresholdPercentage == 0) revert TurtleShellFirewall__InvalidThresholdValue();
         if (blockInterval > block.number) revert TurtleShellFirewall__InvalidBlockInterval();
+        if (cooldownPeriod > block.number) revert TurtleShellFirewall__InvalidCooldownPeriod();
         if (startParameter > type(uint256).max / thresholdPercentage) revert TurtleShellFirewall__InvalidConfigValues();
 
         s_firewallConfig[msg.sender] = FirewallConfig(thresholdPercentage, blockInterval, cooldownPeriod);

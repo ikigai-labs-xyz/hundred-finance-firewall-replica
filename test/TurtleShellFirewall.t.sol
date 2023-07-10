@@ -25,7 +25,7 @@ contract TurtleShellFirewallTest is Test {
         vm.roll(blockNumber);
 
         vm.expectRevert(abi.encodeWithSelector(TurtleShellFirewall.TurtleShellFirewall__InvalidBlockInterval.selector));
-        turtleShellFirewall.setUserConfig(5, blockInterval, blockNumber, 1);
+        turtleShellFirewall.setUserConfig(5, blockInterval, blockNumber, blockNumber);
     }
 
     function testFuzz_setUserConfig_revertsIfInvalidCooldownPeriod(
@@ -34,11 +34,11 @@ contract TurtleShellFirewallTest is Test {
     )
         public
     {
-        vm.assume(cooldownPeriod > blockNumber);
         vm.roll(blockNumber);
+        vm.assume(cooldownPeriod > blockNumber);
 
-        vm.expectRevert(abi.encodeWithSelector(TurtleShellFirewall.TurtleShellFirewall__InvalidConfigValues.selector));
-        turtleShellFirewall.setUserConfig(5, 1, blockNumber, cooldownPeriod);
+        vm.expectRevert(abi.encodeWithSelector(TurtleShellFirewall.TurtleShellFirewall__InvalidCooldownPeriod.selector));
+        turtleShellFirewall.setUserConfig(5, blockNumber, 100, cooldownPeriod);
     }
 
     function testFuzz_setUserConfig_revertsIfInvalidConfigValues(
@@ -56,17 +56,21 @@ contract TurtleShellFirewallTest is Test {
     }
 
     function testFuzz_setUserConfig_setsConfig(
+        uint256 blockNumber,
         uint256 blockInterval,
         uint8 thresholdPercentage,
-        uint256 startParameter
+        uint256 startParameter,
+        uint256 cooldownPeriod
     )
         public
     {
         vm.assume(thresholdPercentage <= 100 && thresholdPercentage != 0);
         vm.assume(startParameter < type(uint256).max / thresholdPercentage);
-        vm.roll(blockInterval);
+        vm.assume(cooldownPeriod <= blockNumber);
+        vm.assume(blockInterval <= blockNumber);
+        vm.roll(blockNumber);
 
-        turtleShellFirewall.setUserConfig(thresholdPercentage, blockInterval, startParameter, 1);
+        turtleShellFirewall.setUserConfig(thresholdPercentage, blockInterval, startParameter, cooldownPeriod);
 
         (uint8 retrievedThreshold, uint256 retrievedInterval) =
             turtleShellFirewall.getSecurityParameterConfigOf(address(this));
@@ -90,18 +94,22 @@ contract TurtleShellFirewallTest is Test {
     }
 
     function testFuzz_setParameter_setsNewParameter(
+        uint256 blockNumber,
         uint256 blockInterval,
         uint8 thresholdPercentage,
         uint256 startParameter,
+        uint256 cooldownPeriod,
         uint256 newParameter
     )
         public
     {
         vm.assume(thresholdPercentage <= 100 && thresholdPercentage != 0);
         vm.assume(startParameter < type(uint256).max / thresholdPercentage);
-        vm.roll(blockInterval);
+        vm.assume(blockInterval <= blockNumber);
+        vm.assume(cooldownPeriod <= blockNumber);
+        vm.roll(blockNumber);
 
-        turtleShellFirewall.setUserConfig(thresholdPercentage, blockInterval, startParameter, 1);
+        turtleShellFirewall.setUserConfig(thresholdPercentage, blockInterval, startParameter, cooldownPeriod);
 
         turtleShellFirewall.setParameter(newParameter);
         assertEq(turtleShellFirewall.getParameterOf(address(this)), newParameter);
@@ -109,9 +117,11 @@ contract TurtleShellFirewallTest is Test {
         // TODO: check event being emitted
     }
 
-    function testFuzz_updateParamter_returnsTrueIfFirewallAlreadyActive(
+    function testFuzz_setParameter_returnsTrueIfFirewallAlreadyActive(
+        uint256 blockNumber,
         uint256 blockInterval,
         uint8 thresholdPercentage,
+        uint256 cooldownPeriod,
         uint256 startParameter,
         uint256 newParameter
     )
@@ -119,9 +129,11 @@ contract TurtleShellFirewallTest is Test {
     {
         vm.assume(thresholdPercentage <= 100 && thresholdPercentage != 0);
         vm.assume(startParameter < type(uint256).max / thresholdPercentage);
-        vm.roll(blockInterval);
+        vm.assume(blockInterval <= blockNumber);
+        vm.assume(cooldownPeriod <= blockNumber);
+        vm.roll(blockNumber);
 
-        turtleShellFirewall.setUserConfig(thresholdPercentage, blockInterval, startParameter, 1);
+        turtleShellFirewall.setUserConfig(thresholdPercentage, blockInterval, startParameter, cooldownPeriod);
         turtleShellFirewall.setFirewallStatus(true);
 
         assertEq(turtleShellFirewall.setParameter(newParameter), true);
@@ -161,20 +173,23 @@ contract TurtleShellFirewallTest is Test {
         assertEq(turtleShellFirewall.getParameterOf(address(this)), newParameter);
     }
 
-    function testFuzz_updateParamter_deactivatesFirewallAfterCooldown(
+    function testFuzz_setParameter_deactivatesFirewallAfterCooldown(
+        uint256 blockNumber,
         uint256 blockInterval,
         uint8 thresholdPercentage,
         uint256 startParameter,
-        uint256 newParameter,
-        uint256 cooldownPeriod
+        uint256 cooldownPeriod,
+        uint256 newParameter
     )
         public
     {
         vm.assume(thresholdPercentage <= 100 && thresholdPercentage != 0);
         vm.assume(startParameter < type(uint256).max / thresholdPercentage);
-        vm.assume(cooldownPeriod < type(uint256).max);
-
-        vm.roll(blockInterval);
+        vm.assume(blockInterval <= blockNumber);
+        vm.assume(cooldownPeriod <= blockNumber);
+        
+        vm.roll(blockNumber);
+        vm.assume(cooldownPeriod < type(uint256).max-1);
 
         turtleShellFirewall.setUserConfig(thresholdPercentage, blockInterval, startParameter, cooldownPeriod);
         turtleShellFirewall.setFirewallStatus(true);
@@ -186,8 +201,10 @@ contract TurtleShellFirewallTest is Test {
     }
 
     function testFuzz_increaseParameter_increasesParameter(
+        uint256 blockNumber,
         uint256 blockInterval,
         uint8 thresholdPercentage,
+        uint256 cooldownPeriod,
         uint256 startParameter,
         uint256 increaseAmount
     )
@@ -196,9 +213,11 @@ contract TurtleShellFirewallTest is Test {
         vm.assume(thresholdPercentage <= 100 && thresholdPercentage != 0);
         vm.assume(startParameter < type(uint256).max / thresholdPercentage);
         vm.assume(increaseAmount < (type(uint256).max - startParameter));
-        vm.roll(blockInterval);
+        vm.assume(blockInterval <= blockNumber);
+        vm.assume(cooldownPeriod <= blockNumber);
+        vm.roll(blockNumber);
 
-        turtleShellFirewall.setUserConfig(thresholdPercentage, blockInterval, startParameter, 1);
+        turtleShellFirewall.setUserConfig(thresholdPercentage, blockInterval, startParameter, cooldownPeriod);
 
         turtleShellFirewall.increaseParameter(increaseAmount);
         assertEq(turtleShellFirewall.getParameterOf(address(this)), startParameter + increaseAmount);
@@ -207,19 +226,23 @@ contract TurtleShellFirewallTest is Test {
     }
 
     function testFuzz_decreaseParameter_decreasesParameter(
+        uint256 blockNumber,
         uint256 blockInterval,
         uint8 thresholdPercentage,
+        uint256 cooldownPeriod,
         uint256 startParameter,
         uint256 decreaseAmount
     )
         public
     {
         vm.assume(thresholdPercentage <= 100 && thresholdPercentage != 0);
+        vm.assume(blockInterval <= blockNumber);
+        vm.assume(cooldownPeriod <= blockNumber);
         vm.assume(startParameter < type(uint256).max / thresholdPercentage);
         vm.assume(startParameter >= decreaseAmount);
-        vm.roll(blockInterval);
+        vm.roll(blockNumber);
 
-        turtleShellFirewall.setUserConfig(thresholdPercentage, blockInterval, startParameter, 1);
+        turtleShellFirewall.setUserConfig(thresholdPercentage, blockInterval, startParameter, cooldownPeriod);
 
         turtleShellFirewall.decreaseParameter(decreaseAmount);
         assertEq(turtleShellFirewall.getParameterOf(address(this)), startParameter - decreaseAmount);
@@ -228,19 +251,23 @@ contract TurtleShellFirewallTest is Test {
     }
 
     function testFuzz_decreaseParameter_revertsIfDecreaseExceedsCurrent(
+        uint256 blockNumber,
         uint256 blockInterval,
         uint8 thresholdPercentage,
+        uint256 cooldownPeriod,
         uint256 startParameter,
         uint256 decreaseAmount
     )
         public
     {
         vm.assume(thresholdPercentage <= 100 && thresholdPercentage != 0);
+        vm.assume(blockInterval <= blockNumber);
+        vm.assume(cooldownPeriod <= blockNumber);
         vm.assume(startParameter < type(uint256).max / thresholdPercentage);
         vm.assume(startParameter < decreaseAmount);
-        vm.roll(blockInterval);
+        vm.roll(blockNumber);
 
-        turtleShellFirewall.setUserConfig(thresholdPercentage, blockInterval, startParameter, 1);
+        turtleShellFirewall.setUserConfig(thresholdPercentage, blockInterval, startParameter, cooldownPeriod);
 
         vm.expectRevert(
             abi.encodeWithSelector(TurtleShellFirewall.TurtleShellFirewall__CannotHaveNegativeParameter.selector)
