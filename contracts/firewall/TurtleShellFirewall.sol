@@ -25,6 +25,8 @@ contract TurtleShellFirewall is ITurtleShellFirewall {
     error TurtleShellFirewall__InvalidBlockInterval();
     /// @notice This error is thrown if the startParameter is too big to be multiplied by the threshold percentage
     error TurtleShellFirewall__InvalidConfigValues();
+    /// @notice This error is thrown if the parameter is decreased bellow zero
+    error TurtleShellFirewall__CannotHaveNegativeParameter();
 
     /// @dev Firewall configuration values for a given user
     struct FirewallConfig {
@@ -164,7 +166,7 @@ contract TurtleShellFirewall is ITurtleShellFirewall {
      */
     function decreaseParameter(uint256 decreaseAmount) external returns (bool) {
         uint256 currentParameter = getParameterOf(msg.sender);
-        require(currentParameter >= decreaseAmount, "Cannot decrease parameter below zero");
+        if (currentParameter < decreaseAmount) revert TurtleShellFirewall__CannotHaveNegativeParameter();
         uint256 newParameter = currentParameter - decreaseAmount;
         return setParameter(newParameter);
     }

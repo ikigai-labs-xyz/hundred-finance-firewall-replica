@@ -28,6 +28,19 @@ contract TurtleShellFirewallTest is Test {
         turtleShellFirewall.setUserConfig(5, blockInterval, blockNumber, 1);
     }
 
+    function testFuzz_setUserConfig_revertsIfInvalidCooldownPeriod(
+        uint256 cooldownPeriod,
+        uint256 blockNumber
+    )
+        public
+    {
+        vm.assume(cooldownPeriod > blockNumber);
+        vm.roll(blockNumber);
+
+        vm.expectRevert(abi.encodeWithSelector(TurtleShellFirewall.TurtleShellFirewall__InvalidConfigValues.selector));
+        turtleShellFirewall.setUserConfig(5, 1, blockNumber, cooldownPeriod);
+    }
+
     function testFuzz_setUserConfig_revertsIfInvalidConfigValues(
         uint256 startParameter,
         uint8 thresholdPercentage
@@ -146,5 +159,92 @@ contract TurtleShellFirewallTest is Test {
         assertEq(turtleShellFirewall.setParameter(newParameter), true);
         assertEq(turtleShellFirewall.getFirewallStatusOf(address(this)), true);
         assertEq(turtleShellFirewall.getParameterOf(address(this)), newParameter);
+    }
+
+    function testFuzz_updateParamter_deactivatesFirewallAfterCooldown(
+        uint256 blockInterval,
+        uint8 thresholdPercentage,
+        uint256 startParameter,
+        uint256 newParameter,
+        uint256 cooldownPeriod
+    )
+        public
+    {
+        vm.assume(thresholdPercentage <= 100 && thresholdPercentage != 0);
+        vm.assume(startParameter < type(uint256).max / thresholdPercentage);
+        vm.assume(cooldownPeriod < type(uint256).max);
+
+        vm.roll(blockInterval);
+
+        turtleShellFirewall.setUserConfig(thresholdPercentage, blockInterval, startParameter, cooldownPeriod);
+        turtleShellFirewall.setFirewallStatus(true);
+
+        vm.roll(cooldownPeriod + 1);
+        turtleShellFirewall.setParameter(newParameter);
+
+        assertEq(turtleShellFirewall.getFirewallStatusOf(address(this)), false);
+    }
+
+    function testFuzz_increaseParameter_increasesParameter(
+        uint256 blockInterval,
+        uint8 thresholdPercentage,
+        uint256 startParameter,
+        uint256 increaseAmount
+    )
+        public
+    {
+        vm.assume(thresholdPercentage <= 100 && thresholdPercentage != 0);
+        vm.assume(startParameter < type(uint256).max / thresholdPercentage);
+        vm.assume(increaseAmount < (type(uint256).max - startParameter));
+        vm.roll(blockInterval);
+
+        turtleShellFirewall.setUserConfig(thresholdPercentage, blockInterval, startParameter, 1);
+
+        turtleShellFirewall.increaseParameter(increaseAmount);
+        assertEq(turtleShellFirewall.getParameterOf(address(this)), startParameter + increaseAmount);
+
+        // TODO: check event being emitted
+    }
+
+    function testFuzz_decreaseParameter_decreasesParameter(
+        uint256 blockInterval,
+        uint8 thresholdPercentage,
+        uint256 startParameter,
+        uint256 decreaseAmount
+    )
+        public
+    {
+        vm.assume(thresholdPercentage <= 100 && thresholdPercentage != 0);
+        vm.assume(startParameter < type(uint256).max / thresholdPercentage);
+        vm.assume(startParameter >= decreaseAmount);
+        vm.roll(blockInterval);
+
+        turtleShellFirewall.setUserConfig(thresholdPercentage, blockInterval, startParameter, 1);
+
+        turtleShellFirewall.decreaseParameter(decreaseAmount);
+        assertEq(turtleShellFirewall.getParameterOf(address(this)), startParameter - decreaseAmount);
+
+        // TODO: check event being emitted
+    }
+
+    function testFuzz_decreaseParameter_revertsIfDecreaseExceedsCurrent(
+        uint256 blockInterval,
+        uint8 thresholdPercentage,
+        uint256 startParameter,
+        uint256 decreaseAmount
+    )
+        public
+    {
+        vm.assume(thresholdPercentage <= 100 && thresholdPercentage != 0);
+        vm.assume(startParameter < type(uint256).max / thresholdPercentage);
+        vm.assume(startParameter < decreaseAmount);
+        vm.roll(blockInterval);
+
+        turtleShellFirewall.setUserConfig(thresholdPercentage, blockInterval, startParameter, 1);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(TurtleShellFirewall.TurtleShellFirewall__CannotHaveNegativeParameter.selector)
+        );
+        turtleShellFirewall.decreaseParameter(decreaseAmount);
     }
 }
