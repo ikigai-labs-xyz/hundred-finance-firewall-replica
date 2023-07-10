@@ -7,16 +7,11 @@ import "./ITurtleShellFirewall.sol";
  * @title TurtleShellFirewall
  * @notice This contract is the TurtleShell Firewall implementation, which can be used by any contract to implement an
  *  on-chain firewall. The firewall can be configured by the contract owner to set a threshold percentage, block
- * interval and
- *  start parameter. The firewall works by checking if the parameter for a given user has changed by more than the
- * threshold, when
- *  updating it. If the parameter has changed by more than the threshold, the firewall will be activated for the given
- * user. In a
- *  sophistaced implementation, the parameter could possible be the result of a mathematical formula, which takes into
- * account vital
- *  parameters of a user (protocol) that should not change by more than a certain threshold. The firewall can be
- * manually deactivated
- *  and actived by the user (protocol) at any time.
+ * interval and start parameter. The firewall works by checking if the parameter for a given user has changed by more
+ * than the threshold, when updating it. If the parameter has changed by more than the threshold, the firewall will be
+ * activated for the given user. In a sophistaced implementation, the parameter could possible be the result of a
+ * mathematical formula, which takes into account vital parameters of a user (protocol) that should not change by more
+ * than a certain threshold. The firewall can be manually deactivated and actived by the user (protocol) at any time.
  */
 contract TurtleShellFirewall is ITurtleShellFirewall {
     /// @notice This error is thrown if the threshold value is greater than 100 (100%)
@@ -46,6 +41,7 @@ contract TurtleShellFirewall is ITurtleShellFirewall {
     /// @dev Dynamic firewall state data for a given user
     struct FirewallData {
         mapping(uint32 nonce => ParameterData) parameters;
+        // TODO: remove this and use the block number as indicator for the firewall status (0 for false)
         bool firewallActive;
         uint32 nonce;
         uint256 lastActivatedBlock;
@@ -92,6 +88,7 @@ contract TurtleShellFirewall is ITurtleShellFirewall {
         uint32 nonce = s_firewallData[msg.sender].nonce;
         for (uint32 i = nonce; i > 0; i--) {
             if (s_firewallData[msg.sender].parameters[i - 1].blockNumber <= targetBlockNumber) {
+                // TODO: find a solution to avoid accessing storage at every iteration (possibly store the value as an array in memory)
                 referenceParameter = s_firewallData[msg.sender].parameters[i - 1].parameter;
                 break;
             }
@@ -122,17 +119,15 @@ contract TurtleShellFirewall is ITurtleShellFirewall {
      */
     function setParameter(uint256 newParameter) public returns (bool) {
         FirewallConfig memory m_firewallConfig = s_firewallConfig[msg.sender];
-        FirewallData storage userFirewallData = s_firewallData[msg.sender];
 
         /// @dev gas savings by skipping threshold check in case of active firewall
-        if (userFirewallData.firewallActive) {
-            _setParameter(newParameter);
-
+        if (s_firewallData[msg.sender].firewallActive) {
             /// @dev check if the cooldown period has passed
-            if (block.number - userFirewallData.lastActivatedBlock > m_firewallConfig.cooldownPeriod) {
+            if (block.number - s_firewallData[msg.sender].lastActivatedBlock > m_firewallConfig.cooldownPeriod) {
                 _setFirewallStatus(false);
             }
 
+            _setParameter(newParameter);
             return true;
         }
 
