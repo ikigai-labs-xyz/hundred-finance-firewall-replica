@@ -19,7 +19,7 @@ interface ITurtleShellFirewall {
      * @param newParameter is the new parameter
      * @return Returns true if the firewall was activated, or had alrady been active
      */
-    function updateParameter(uint256 newParameter) external returns (bool);
+    function setParameter(uint256 newParameter) external returns (bool);
 
     /**
      * @notice Function for setting the configuration values for a firewall user
@@ -27,7 +27,13 @@ interface ITurtleShellFirewall {
      * @param blockInterval The block interval to set for the firewall
      * @dev The function emits the {ParameterChanged} event
      */
-    function setUserConfig(uint8 thresholdPercentage, uint256 blockInterval, uint256 startParameter) external;
+    function setUserConfig(
+        uint8 thresholdPercentage,
+        uint256 blockInterval,
+        uint256 startParameter,
+        uint256 cooldownPeriod
+    )
+        external;
 
     /**
      * @notice Function for manually setting the firewall status for a given user
