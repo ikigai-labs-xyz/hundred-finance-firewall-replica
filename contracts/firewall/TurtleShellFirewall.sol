@@ -73,6 +73,7 @@ contract TurtleShellFirewall is ITurtleShellFirewall {
      */
     function _setFirewallStatus(bool newStatus) internal {
         s_firewallData[msg.sender].firewallActive = newStatus;
+        if (newStatus) s_firewallData[msg.sender].lastActivatedBlock = block.number;
         emit FirewallStatusUpdate(msg.sender, newStatus);
     }
 
@@ -90,7 +91,8 @@ contract TurtleShellFirewall is ITurtleShellFirewall {
         uint32 nonce = s_firewallData[msg.sender].nonce;
         for (uint32 i = nonce; i > 0; i--) {
             if (s_firewallData[msg.sender].parameters[i - 1].blockNumber <= targetBlockNumber) {
-                // TODO: find a solution to avoid accessing storage at every iteration (possibly store the value as an array in memory)
+                // TODO: find a solution to avoid accessing storage at every iteration (possibly store the value as an
+                // array in memory)
                 referenceParameter = s_firewallData[msg.sender].parameters[i - 1].parameter;
                 break;
             }
@@ -127,6 +129,7 @@ contract TurtleShellFirewall is ITurtleShellFirewall {
             /// @dev check if the cooldown period has passed
             if (block.number - s_firewallData[msg.sender].lastActivatedBlock > m_firewallConfig.cooldownPeriod) {
                 _setFirewallStatus(false);
+                return false
             }
 
             _setParameter(newParameter);
