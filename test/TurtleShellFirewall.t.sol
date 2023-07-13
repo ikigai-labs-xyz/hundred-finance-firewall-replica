@@ -191,16 +191,17 @@ contract TurtleShellFirewallTest is Test {
         vm.assume(startParameter < type(uint256).max / thresholdPercentage);
         vm.assume(blockInterval <= blockNumber);
         vm.assume(cooldownPeriod <= blockNumber);
-        
+
         vm.roll(blockNumber);
-        vm.assume(cooldownPeriod < type(uint256).max-1);
+        vm.assume(cooldownPeriod < type(uint256).max - 1);
 
         turtleShellFirewall.setUserConfig(thresholdPercentage, blockInterval, startParameter, cooldownPeriod);
         turtleShellFirewall.setFirewallStatus(true);
 
         vm.roll(cooldownPeriod + 1);
-        turtleShellFirewall.setParameter(newParameter);
+        bool firewallStatus = turtleShellFirewall.setParameter(newParameter);
 
+        assertEq(firewallStatus, false);
         assertEq(turtleShellFirewall.getFirewallStatusOf(address(this)), false);
     }
 

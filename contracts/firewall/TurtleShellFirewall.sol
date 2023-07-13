@@ -125,12 +125,16 @@ contract TurtleShellFirewall is ITurtleShellFirewall {
         /// @dev gas savings by skipping threshold check in case of active firewall
         if (s_firewallData[msg.sender].firewallActive) {
             /// @dev check if the cooldown period has passed
+            bool coldownSurpassed = false;
             if (block.number - s_firewallData[msg.sender].lastActivatedBlock > m_firewallConfig.cooldownPeriod) {
                 _setFirewallStatus(false);
+                coldownSurpassed = true;
             }
 
-            _setParameter(newParameter);
-            return true;
+            if (!coldownSurpassed) {
+                _setParameter(newParameter);
+                return true;
+            }
         }
 
         bool triggerFirewall = _checkIfParameterUpdateExceedsThreshold(newParameter);
