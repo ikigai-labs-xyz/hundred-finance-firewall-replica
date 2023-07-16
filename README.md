@@ -21,3 +21,7 @@
 ### Run script
 
 `forge script ./scripts/HundredFinance_Original.s.sol --tc HundredFinanceHackReplicator --rpc-url localhost`
+
+## Gas coverage
+
+`forge test --mc HundredFinanceHackReplicator --fork-url localhost:8545 --gas-report`
