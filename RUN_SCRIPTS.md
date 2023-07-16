@@ -7,3 +7,7 @@
 ## Run tests
 
 `forge test --mc HundredFinanceHackReplicator -vvvv --fork-url localhost:8545`
+
+## Run script
+
+`forge script ./scripts/HundredFinance_ExactFork.s.sol --tc HundredFinanceHackReplicator --rpc-url localhost`

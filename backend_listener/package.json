@@ -1,0 +1,18 @@
+{
+  "name": "hundred-finance-firewall-replica",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:ikigai-labs-xyz/hundred-finance-firewall-replica.git",
+  "author": "Tobias Leinß <tobias.leinss@mway.io>",
+  "license": "MIT",
+  "scripts": {
+    "start": "ts-node src/main.ts"
+  },
+  "dependencies": {
+    "ethers": "^6.6.3"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.1",
+    "typescript": "^5.1.6"
+  }
+}
