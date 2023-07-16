@@ -1,5 +1,5 @@
 import { ethers } from "ethers"
-import HundredFinanceHackReplicator from "../../artifacts/HundredFinance_ExactFork.t.sol/HundredFinanceHackReplicator.json"
+import HundredFinanceHackReplicator from "../../hack-replication/artifacts/HundredFinance_Original.t.sol/HundredFinanceHackReplicator.json"
 
 function main() {
   console.log("Start listening...")
