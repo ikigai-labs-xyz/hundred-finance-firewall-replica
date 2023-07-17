@@ -24,17 +24,17 @@ function main() {
     }
   })
 
-  const init = function () {
-    var customWsProvider = new ethers.WebSocketProvider(wsUrl)
+  // const init = function () {
+  //   var customWsProvider = new ethers.WebSocketProvider(wsUrl)
 
-    customWsProvider.on("pending", (tx) => {
-      customWsProvider.getTransaction(tx).then(function (transaction) {
-        console.log(transaction)
-      })
-    })
-  }
+  //   customWsProvider.on("pending", (tx) => {
+  //     customWsProvider.getTransaction(tx).then(function (transaction) {
+  //       console.log(transaction)
+  //     })
+  //   })
+  // }
 
-  init()
+  // init()
 
   // customWsProvider.websocket.on("error", async () => {
   //   console.log(`Unable to connect to ${ep.subdomain} retrying in 3s...`);
