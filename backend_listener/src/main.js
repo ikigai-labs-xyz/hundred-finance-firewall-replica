@@ -1,5 +1,5 @@
-import { ethers } from "ethers"
-import HundredFinanceHackReplicator from "../../hack-replication/artifacts/HundredFinance_Original.t.sol/HundredFinanceHackReplicator.json"
+const { ethers } = require("ethers")
+// import HundredFinanceHackReplicator from "../../hack-replication/artifacts/HundredFinance_Original.t.sol/HundredFinanceHackReplicator.json"
 
 function main() {
   console.log("Start listening...")
@@ -11,7 +11,8 @@ function main() {
 
   const provider = new ethers.providers.JsonRpcProvider(url)
   provider.on("block", async (blockNumber) => {
-    console.log("blockNumber", blockNumber)
+    // console.log("blockNumber", blockNumber)
+
     console.log(`New block: #${blockNumber}`)
 
     const block = await provider.getBlockWithTransactions(blockNumber)
@@ -24,17 +25,17 @@ function main() {
     }
   })
 
-  const init = function () {
-    var customWsProvider = new ethers.WebSocketProvider(wsUrl)
+  // const init = function () {
+  //   var customWsProvider = new ethers.providers.WebSocketProvider(wsUrl)
 
-    customWsProvider.on("pending", (tx) => {
-      customWsProvider.getTransaction(tx).then(function (transaction) {
-        console.log(transaction)
-      })
-    })
-  }
+  //   customWsProvider.on("pending", (tx) => {
+  //     customWsProvider.getTransaction(tx).then(function (transaction) {
+  //       console.log(transaction)
+  //     })
+  //   })
+  // }
 
-  init()
+  // init()
 
   // customWsProvider.websocket.on("error", async () => {
   //   console.log(`Unable to connect to ${ep.subdomain} retrying in 3s...`);

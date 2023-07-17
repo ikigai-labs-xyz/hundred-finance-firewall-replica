@@ -9,7 +9,7 @@
     "start": "ts-node src/main.ts"
   },
   "dependencies": {
-    "ethers": "^6.6.3"
+    "ethers": "^5"
   },
   "devDependencies": {
     "ts-node": "^10.9.1",
